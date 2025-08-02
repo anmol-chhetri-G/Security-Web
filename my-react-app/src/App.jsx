@@ -18,6 +18,8 @@ import AdminFeedback from './pages/AdminFeedback.jsx';
 
 /**
  * Main App component with routing and providers
+ * Provides authentication context, theme context, and error boundary
+ * Routes are organized by layout type for better organization
  */
 function App() {
   return (
@@ -26,7 +28,7 @@ function App() {
         <AuthProvider>
           <Router>
             <Routes>
-              {/* Main Layout Routes */}
+              {/* Main Layout Routes - Public pages with navigation header/footer */}
               <Route path="/" element={<MainLayout />}>
                 <Route index element={<Home />} />
                 <Route path="features" element={<Features />} />
@@ -34,13 +36,13 @@ function App() {
                 <Route path="try-now" element={<Navigate to="/signup" replace />} />
               </Route>
 
-              {/* Auth Layout Routes */}
+              {/* Auth Layout Routes - Login/signup pages with minimal layout */}
               <Route path="/auth" element={<AuthLayout />}>
                 <Route path="login" element={<Login />} />
                 <Route path="signup" element={<Signup />} />
               </Route>
 
-              {/* Direct auth routes (for backward compatibility) */}
+              {/* Direct auth routes - Backward compatibility for direct access */}
               <Route path="/login" element={<AuthLayout />}>
                 <Route index element={<Login />} />
               </Route>
@@ -48,16 +50,16 @@ function App() {
                 <Route index element={<Signup />} />
               </Route>
 
-              {/* Tool Routes */}
+              {/* Tool Routes - Security analysis tools with standalone layout */}
               <Route path="/user-lookup" element={<UserLookup />} />
               <Route path="/ip-info" element={<IpInfo />} />
               <Route path="/domain-info" element={<DomainInfo />} />
               <Route path="/file-scanner" element={<FileScanner />} />
               
-              {/* Admin Routes */}
+              {/* Admin Routes - Administrative functions */}
               <Route path="/admin/feedback" element={<AdminFeedback />} />
 
-              {/* Catch all route */}
+              {/* Catch all route - Redirect to home for unknown paths */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Router>

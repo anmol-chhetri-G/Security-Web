@@ -35,7 +35,7 @@ export const ToolsSection = () => {
         navigate('/domain-info');
         break;
       case 'File Scanner':
-        navigate('/custom-file-scanner');
+        navigate('/file-scanner');
         break;
       default:
         // For future tools

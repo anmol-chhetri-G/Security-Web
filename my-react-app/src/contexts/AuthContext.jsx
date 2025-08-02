@@ -1,7 +1,12 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 
+// Create authentication context for managing user state
 const AuthContext = createContext(undefined);
 
+/**
+ * Custom hook to access authentication context
+ * Throws error if used outside of AuthProvider
+ */
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
@@ -10,28 +15,36 @@ export const useAuth = () => {
   return context;
 };
 
+/**
+ * Authentication provider component
+ * Manages user authentication state, login, signup, and logout functionality
+ * Persists authentication data in localStorage for session persistence
+ */
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [token, setToken] = useState(localStorage.getItem('authToken'));
 
-  // Check if user is authenticated on mount
+  // Check if user is authenticated on component mount
+  // Restores user session from localStorage if token exists
   useEffect(() => {
     if (token) {
-      // You could add a token validation endpoint here
-      // For now, we'll just check if token exists
       const userData = localStorage.getItem('userData');
       if (userData) {
         try {
           setUser(JSON.parse(userData));
         } catch (error) {
           console.error('Error parsing user data:', error);
-          logout();
+          logout(); // Clear invalid data
         }
       }
     }
   }, [token]);
 
+  /**
+   * User login function
+   * Authenticates user credentials and stores authentication data
+   */
   const login = useCallback(async (email, password) => {
     setIsLoading(true);
     try {
@@ -47,6 +60,7 @@ export const AuthProvider = ({ children }) => {
         throw new Error(data.error || 'Login failed');
       }
 
+      // Store authentication data
       setToken(data.token);
       setUser(data.user);
       localStorage.setItem('authToken', data.token);
@@ -61,6 +75,10 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  /**
+   * User registration function
+   * Creates new user account and automatically logs in
+   */
   const signup = useCallback(async (email, password, username) => {
     setIsLoading(true);
     try {
@@ -76,6 +94,7 @@ export const AuthProvider = ({ children }) => {
         throw new Error(data.error || 'Signup failed');
       }
 
+      // Store authentication data after successful signup
       setToken(data.token);
       setUser(data.user);
       localStorage.setItem('authToken', data.token);
@@ -90,6 +109,10 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  /**
+   * User logout function
+   * Clears authentication data and user session
+   */
   const logout = useCallback(() => {
     setUser(null);
     setToken(null);
@@ -97,6 +120,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('userData');
   }, []);
 
+  // Provide authentication context to child components
   const value = {
     user,
     token,

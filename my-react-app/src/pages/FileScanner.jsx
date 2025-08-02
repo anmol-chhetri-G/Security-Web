@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Shield, Upload, AlertTriangle, CheckCircle, Clock, FileText, Zap, Eye, AlertCircle, Download, Info, X, Search, Filter } from 'lucide-react';
-import { useTheme } from '../contexts/ThemeContext';
 
 export default function CustomFileScanner() {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -10,7 +9,6 @@ export default function CustomFileScanner() {
   const [dragActive, setDragActive] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const { theme } = useTheme();
 
   const handleFileSelect = (file) => {
     if (file) {
@@ -53,15 +51,21 @@ export default function CustomFileScanner() {
     setIsLoading(true);
 
     try {
+      console.log('Starting file upload...', selectedFile.name, selectedFile.size);
       const formData = new FormData();
       formData.append('file', selectedFile);
 
+      console.log('Making request to /api/file-scanner/custom-scan');
       const res = await fetch('/api/file-scanner/custom-scan', {
         method: 'POST',
         body: formData,
       });
       
+      console.log('Response status:', res.status);
+      console.log('Response headers:', Object.fromEntries(res.headers.entries()));
+      
       const data = await res.json();
+      console.log('Response data:', data);
       
       if (res.ok) {
         setResult(data);
@@ -69,6 +73,7 @@ export default function CustomFileScanner() {
         setError(data.error || 'File scan failed');
       }
     } catch (err) {
+      console.error('File scan error:', err);
       setError('File scan failed. Please try again.');
     } finally {
       setIsLoading(false);
@@ -118,22 +123,16 @@ export default function CustomFileScanner() {
   };
 
   return (
-    <section className={`pt-20 pb-16 min-h-screen ${
-      theme === 'dark' ? 'bg-slate-900' : 'bg-gray-50'
-    }`}>
+    <section className="bg-slate-900 pt-20 pb-16 min-h-screen">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
-          <div className={`rounded-lg shadow-lg p-8 mb-8 ${
-            theme === 'dark' ? 'bg-slate-800' : 'bg-white'
-          }`}>
+          <div className="bg-slate-800 rounded-lg shadow-lg p-8 mb-8">
             <div className="text-center mb-8">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-600 rounded-full mb-4">
                 <Shield className="h-8 w-8 text-white" />
               </div>
-              <h2 className={`text-3xl font-bold mb-2 ${
-                theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
-              }`}>Advanced File Scanner</h2>
-              <p className={theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}>
+              <h2 className="text-3xl font-bold text-gray-100 mb-2">Advanced File Scanner</h2>
+              <p className="text-gray-300">
                 Comprehensive file analysis using multiple security checks for malware detection
               </p>
             </div>
@@ -143,27 +142,19 @@ export default function CustomFileScanner() {
                 className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
                   dragActive 
                     ? 'border-purple-500 bg-purple-900/20' 
-                    : theme === 'dark' 
-                      ? 'border-slate-600 hover:border-slate-500' 
-                      : 'border-gray-300 hover:border-gray-400'
+                    : 'border-slate-600 hover:border-slate-500'
                 }`}
                 onDragEnter={handleDrag}
                 onDragLeave={handleDrag}
                 onDragOver={handleDrag}
                 onDrop={handleDrop}
               >
-                <Upload className={`h-12 w-12 mx-auto mb-4 ${
-                  theme === 'dark' ? 'text-slate-400' : 'text-gray-400'
-                }`} />
+                <Upload className="h-12 w-12 text-slate-400 mx-auto mb-4" />
                 
                 {selectedFile ? (
                   <div className="space-y-2">
-                    <p className={`font-medium ${
-                      theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
-                    }`}>{selectedFile.name}</p>
-                    <p className={`text-sm ${
-                      theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                    }`}>
+                    <p className="text-gray-100 font-medium">{selectedFile.name}</p>
+                    <p className="text-sm text-gray-400">
                       {formatFileSize(selectedFile.size)}
                     </p>
                     <button
@@ -177,7 +168,7 @@ export default function CustomFileScanner() {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <p className={theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}>
+                    <p className="text-gray-100">
                       Drag and drop a file here, or{' '}
                       <label className="text-purple-400 hover:text-purple-300 cursor-pointer">
                         browse
@@ -188,9 +179,7 @@ export default function CustomFileScanner() {
                         />
                       </label>
                     </p>
-                    <p className={`text-sm ${
-                      theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                    }`}>
+                    <p className="text-sm text-gray-400">
                       Supports all file types (max 32MB)
                     </p>
                   </div>
@@ -229,18 +218,12 @@ export default function CustomFileScanner() {
           {result && (
             <div className="space-y-6">
               {/* Header with Risk Assessment */}
-              <div className={`rounded-lg p-6 ${
-                theme === 'dark' ? 'bg-slate-800' : 'bg-white'
-              }`}>
+              <div className="bg-slate-800 rounded-lg p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h3 className={`text-xl font-semibold mb-1 ${
-                      theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
-                    }`}>Analysis Results</h3>
-                    <p className={theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}>File: {result.filename}</p>
-                    <p className={`text-sm ${
-                      theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                    }`}>
+                    <h3 className="text-xl font-semibold text-gray-100 mb-1">Analysis Results</h3>
+                    <p className="text-gray-300">File: {result.filename}</p>
+                    <p className="text-sm text-gray-400">
                       Analyzed at: {new Date(result.scannedAt).toLocaleString()}
                     </p>
                   </div>
@@ -249,33 +232,23 @@ export default function CustomFileScanner() {
                       {getSeverityIcon(result.severity)}
                       <span className="font-semibold text-lg">{result.severity}</span>
                     </div>
-                    <div className={`text-sm ${
-                      theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                    }`}>
+                    <div className="text-sm text-gray-400">
                       Risk Score: {result.riskScore}/100
                     </div>
                   </div>
                 </div>
                 
                 {/* Risk Progress Bar */}
-                <div className={`w-full rounded-full h-4 mb-4 ${
-                  theme === 'dark' ? 'bg-slate-700' : 'bg-gray-200'
-                }`}>
+                <div className="w-full bg-slate-700 rounded-full h-4 mb-4">
                   <div 
                     className={`h-4 rounded-full transition-all duration-500 ${getSeverityBgColor(result.severity)}`}
                     style={{ width: `${result.riskScore}%` }}
                   ></div>
                 </div>
                 
-                <div className={`rounded-lg p-4 ${
-                  theme === 'dark' ? 'bg-slate-700' : 'bg-gray-100'
-                }`}>
-                  <p className={`font-medium mb-2 ${
-                    theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
-                  }`}>Recommendation:</p>
-                  <p className={`text-sm ${
-                    theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-                  }`}>{result.recommendation}</p>
+                <div className="bg-slate-700 rounded-lg p-4">
+                  <p className="text-gray-100 font-medium mb-2">Recommendation:</p>
+                  <p className="text-gray-300 text-sm">{result.recommendation}</p>
                 </div>
               </div>
 
