@@ -1,0 +1,120 @@
+-- (queery for mysql)
+-- Create the security_web_db database
+CREATE DATABASE IF NOT EXISTS security_web_db;
+USE security_web_db;
+DESCRIBE Users;
+SHOW INDEXES FROM Users;
+
+-- Create Users table
+CREATE TABLE IF NOT EXISTS `Users` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `username` VARCHAR(255) NOT NULL UNIQUE,
+  `email` VARCHAR(255) NOT NULL UNIQUE,
+  `password` VARCHAR(255) NOT NULL,
+  `role` ENUM('user', 'admin') DEFAULT 'user',
+  `isActive` BOOLEAN DEFAULT TRUE,
+  `lastLogin` TIMESTAMP NULL,
+  `createdAt` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  -- Default value set to CURRENT_TIMESTAMP
+  `updatedAt` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  
+  -- Indexes for better performance
+  INDEX `idx_email` (`email`),
+  INDEX `idx_username` (`username`),
+  INDEX `idx_created_at` (`createdAt`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Create User Sessions table
+CREATE TABLE IF NOT EXISTS `UserSessions` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `userId` INT NOT NULL,
+  `token` VARCHAR(500) NOT NULL UNIQUE,
+  `expiresAt` TIMESTAMP NOT NULL,
+  `createdAt` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  -- Default value set to CURRENT_TIMESTAMP
+  `lastActivity` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  
+  FOREIGN KEY (`userId`) REFERENCES `Users`(`id`) ON DELETE CASCADE,
+  INDEX `idx_token` (`token`),
+  INDEX `idx_user_id` (`userId`),
+  INDEX `idx_expires_at` (`expiresAt`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Create API Usage Log table
+CREATE TABLE IF NOT EXISTS `ApiUsageLog` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `userId` INT NULL,
+  `endpoint` VARCHAR(100) NOT NULL,
+  `method` VARCHAR(10) NOT NULL,
+  `ipAddress` VARCHAR(45),
+  `userAgent` TEXT,
+  `statusCode` INT,
+  `responseTime` INT, -- in milliseconds
+  `createdAt` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  -- Default value set to CURRENT_TIMESTAMP
+  FOREIGN KEY (`userId`) REFERENCES `Users`(`id`) ON DELETE SET NULL,
+  INDEX `idx_user_id` (`userId`),
+  INDEX `idx_endpoint` (`endpoint`),
+  INDEX `idx_created_at` (`createdAt`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Insert sample admin user (password: admin123)
+-- NOTE: Ensure the password is hashed before insertion. Example hash below is bcrypt.
+INSERT INTO `Users` (`username`, `email`, `password`, `role`, `createdAt`) VALUES 
+('admin', 'admin@securityweb.com', '$2b$10$rQZ8K9mN2pL1vX3yU7wE4t.6sA8bC5dF2gH3jK4lM5nO6pQ7rS8tU9vW0xY1z', 'admin', CURRENT_TIMESTAMP)
+ON DUPLICATE KEY UPDATE `updatedAt` = CURRENT_TIMESTAMP;
+
+-- Insert sample regular user (password: user123)
+-- NOTE: Ensure the password is hashed before insertion. Example hash below is bcrypt.
+INSERT INTO `Users` (`username`, `email`, `password`, `role`, `createdAt`) VALUES 
+('demo_user', 'demo@example.com', '$2b$10$mN2pL1vX3yU7wE4t.6sA8bC5dF2gH3jK4lM5nO6pQ7rS8tU9vW0xY1zA2b', 'user', CURRENT_TIMESTAMP)
+ON DUPLICATE KEY UPDATE `updatedAt` = CURRENT_TIMESTAMP;
+
+-- Create view for user statistics
+CREATE OR REPLACE VIEW `UserStats` AS
+SELECT 
+  u.id,
+  u.username,
+  u.email,
+  u.role,
+  u.isActive,
+  u.lastLogin,
+  u.createdAt,
+  COALESCE(COUNT(s.id), 0) AS sessionCount,
+  COALESCE(COUNT(a.id), 0) AS apiCallCount
+FROM Users u
+LEFT JOIN UserSessions s ON u.id = s.userId
+LEFT JOIN ApiUsageLog a ON u.id = a.userId
+GROUP BY u.id;
+
+-- Create stored procedure for user cleanup (clean expired sessions)
+DELIMITER //
+CREATE PROCEDURE CleanupExpiredSessions()
+BEGIN
+  DELETE FROM UserSessions WHERE expiresAt < NOW();
+END //
+DELIMITER ;
+
+-- Create event to automatically cleanup expired sessions (runs every hour)
+CREATE EVENT IF NOT EXISTS cleanup_sessions_event
+ON SCHEDULE EVERY 1 HOUR
+DO CALL CleanupExpiredSessions();
+
+-- Enable MySQL Event Scheduler (if needed)
+SET GLOBAL event_scheduler = ON;
+
+-- Show created tables (for verification)
+SHOW TABLES;
+
+-- Show sample data from Users table
+SELECT id, username, email, role, isActive, createdAt FROM Users;
+
+-- Show user statistics (with session and API call counts)
+SELECT * FROM UserStats;
+
+-- Show all API usage logs (for testing purposes)
+SELECT * FROM ApiUsageLog;
+
+-- Show active user sessions (for testing purposes)
+SELECT * FROM UserSessions;
+CREATE TABLE IF NOT EXISTS `Users` (   `id` INT AUTO_INCREMENT PRIMARY KEY,   `username` VARCHAR(255) NOT NULL UNIQUE,   `email` VARCHAR(255) NOT NULL UNIQUE,   `password` VARCHAR(255) NOT NULL,   `role` ENUM('user', 'admin') DEFAULT 'user',   `isActive` BOOLEAN DEFAULT TRUE,   `lastLogin` TIMESTAMP NULL,   `createdAt` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  -- Default value set to CURRENT_TIMESTAMP   `updatedAt` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,      -- Indexes for better performance   INDEX `idx_email` (`email`),   INDEX `idx_username` (`username`),   INDEX `idx_created_at` (`createdAt`) ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+
+
+
