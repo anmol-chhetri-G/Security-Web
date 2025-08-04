@@ -40,6 +40,37 @@ const User = sequelize.define('User', {
   lastLogin: {
     type: DataTypes.DATE,
     allowNull: true
+  },
+  // Session management fields
+  sessionToken: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    unique: true
+  },
+  sessionExpiry: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  loginAttempts: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    allowNull: false
+  },
+  lockoutUntil: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  lastPasswordChange: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  passwordResetToken: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  passwordResetExpiry: {
+    type: DataTypes.DATE,
+    allowNull: true
   }
 }, {
   tableName: 'Users',

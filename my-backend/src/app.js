@@ -2,6 +2,9 @@ import dotenv from 'dotenv';
 import express from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import { cleanupExpiredSessions } from './utils/sessionManager.js';
 
 // Load environment variables from .env file
 dotenv.config();
@@ -16,44 +19,97 @@ import fileScannerRoutes from './routes/fileScanner.js';
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Configure CORS for frontend communication
-// Allows requests from frontend URL specified in environment variables
-app.use(cors({
-  origin: [
-    process.env.FRONTEND_URL || 'http://localhost:5173',
-    'http://localhost:5174',
-    'http://localhost:5175',
-    'http://localhost:3000'
-  ],
-  credentials: true
+// Security middleware
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:"],
+    },
+  },
+  crossOriginEmbedderPolicy: false
 }));
 
-// Parse JSON and URL-encoded request bodies
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-
-// API route handlers
-app.use('/api', routes);
-app.use('/api/auth', authRoutes);
-app.use('/api/feedback', feedbackRoutes);
-app.use('/api/file-scanner', fileScannerRoutes);
-
-// Global error handling middleware
-// Catches any unhandled errors and returns a generic error response
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Something went wrong!' });
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
-// Health check endpoint for monitoring
-// Returns server status and database connection status
+app.use(limiter);
+
+// CORS configuration
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// Body parsing middleware
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Trust proxy for accurate IP addresses
+app.set('trust proxy', 1);
+
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/feedback', feedbackRoutes);
+app.use('/api/filescanner', fileScannerRoutes);
+app.use('/api', routes);
+
+// Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
-    database: sequelize.authenticate ? 'Connected' : 'Disconnected'
+    uptime: process.uptime()
   });
 });
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  
+  if (err.name === 'SequelizeValidationError') {
+    return res.status(400).json({ 
+      error: 'Validation error', 
+      details: err.errors.map(e => e.message) 
+    });
+  }
+  
+  if (err.name === 'SequelizeUniqueConstraintError') {
+    return res.status(409).json({ 
+      error: 'Duplicate entry', 
+      details: err.errors.map(e => e.message) 
+    });
+  }
+  
+  res.status(500).json({ 
+    error: 'Internal server error',
+    message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
+  });
+});
+
+// 404 handler
+app.use('*', (req, res) => {
+  res.status(404).json({ error: 'Route not found' });
+});
+
+// Session cleanup job (run every 5 minutes)
+setInterval(async () => {
+  try {
+    await cleanupExpiredSessions();
+  } catch (error) {
+    console.error('Session cleanup error:', error);
+  }
+}, 5 * 60 * 1000);
 
 // Environment check endpoint for debugging
 // Returns environment configuration status (useful for troubleshooting)
