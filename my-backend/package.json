@@ -8,7 +8,8 @@
     "start": "node src/app.js",
     "dev": "nodemon src/app.js",
     "check-env": "node check-env.js",
-    "test-vt": "node test-virustotal.js"
+    "test-vt": "node test-virustotal.js",
+    "setup-db": "node setup-database.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
