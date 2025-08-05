@@ -9,7 +9,11 @@
     "dev": "nodemon src/app.js",
     "check-env": "node check-env.js",
     "test-vt": "node test-virustotal.js",
+<<<<<<< HEAD
     "migrate": "node migrations/run-migrations.js"
+=======
+    "setup-db": "node setup-database.js"
+>>>>>>> 769dfb8 (Force push local project to overwrite remote master)
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
